@@ -1,0 +1,6 @@
+# Sorcellerie en Java : outrepasser les interdits avec sun.misc.Unsafe
+
+Quicky visant à présenter cette classe qui a fait couler beaucoup d'encre dernièrement (menace de suppression du jdk, levée de bouclier d'Hazelcast et d'Azul Systems, etc.) au travers :
+
+* d'exemples précis (instantiation, création d'instance sans constructeur, sérialisation, tableaux extra larges, etc.)
+* et en présentant l'usage qui en est fait par plusieurs grandes sociétés et librairies (Mockito, Hazelcast, etc.)
