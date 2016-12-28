@@ -1,0 +1,30 @@
+= Sorcellerie en Java : outrepasser les interdits avec sun.misc.Unsafe
+:toc:
+:toclevels: 3
+:toc-placement: preamble
+:lb: pass:[<br> +]
+:imagesdir: ./images
+:icons: font
+:source-highlighter: highlightjs
+
+By Thomas SCHWENDER (Softeam StarTECH Java)
+
+== Overview
+
+Quicky visant à présenter cette classe qui a fait couler beaucoup d’encre dernièrement (menace de suppression du jdk, levée de bouclier d’Hazelcast et d’Azul Systems, etc.) au travers :
+
+* d’exemples précis (instantiation, création d’instance sans constructeur, sérialisation, tableaux extra larges, etc.)
+* et en présentant l’usage qui en est fait par plusieurs grandes sociétés et librairies (Mockito, Hazelcast, etc.)
+
+== Mémoire Off Heap
+
+== TODO
+
+== Resources
+
+* http://www.mkyong.com/java/java-custom-annotations-example/
+* https://docs.oracle.com/javase/tutorial/java/annotations/index.html
+* http://tutorials.jenkov.com/java/annotations.html
+* https://docs.oracle.com/javase/8/docs/api/index.html
+* http://stackoverflow.com/questions/18512304/difference-between-fieldgetannotations-and-fieldgetdeclaredannotations
+

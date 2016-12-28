@@ -1,0 +1,12 @@
+/**
+ * Custom CSS for Asciidoctor / reveal.js back-end
+ */
+
+/* specific color for bold characters */
+.reveal strong,
+.reveal b {
+  color: #FF6A00; }
+
+.orange {
+    color: #FF6A00;
+}

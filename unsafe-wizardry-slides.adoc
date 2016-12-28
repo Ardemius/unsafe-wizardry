@@ -1,0 +1,12 @@
+= Sorcellerie en Java : outrepasser les interdits avec `sun.misc.Unsafe`
+// classic AsciiDoctor attributes
+:icons: font
+:imagesdir: images
+// Despite the warning of the documentation, https://github.com/asciidoctor/asciidoctor-reveal.js, highlight.js syntax highlighting WORKS, BUT, you need to explicitly set the highlighter using the below attribute
+// see http://discuss.asciidoctor.org/Highlighting-source-code-for-reveal-js-backend-td2750.html
+:source-highlighter: highlightjs
+// reveal.js attributes
+:customcss: styles/myCustomCSS.css
+
+== Mémoire Off Heap
+
