@@ -1,6 +1,11 @@
-# Sorcellerie en Java : outrepasser les interdits avec sun.misc.Unsafe
+# Sorcellerie en Java : outrepasser les interdits avec `sun.misc.Unsafe`
 
 Quicky visant à présenter cette classe qui a fait couler beaucoup d'encre dernièrement (menace de suppression du jdk, levée de bouclier d'Hazelcast et d'Azul Systems, etc.) au travers :
 
 * d'exemples précis (instantiation, création d'instance sans constructeur, sérialisation, tableaux extra larges, etc.)
 * et en présentant l'usage qui en est fait par plusieurs grandes sociétés et librairies (Mockito, Hazelcast, etc.)
+
+Les slides sont directement accessibles à l'URL https://ardemius.github.io/unsafe-wizardry/unsafe-wizardry-slides.html, à l'aide des *GitHub pages* du projet.
+
+Ces slides utilisent la stack technique http://asciidoctor.org/[*Asciidoctor*] + backend https://github.com/asciidoctor/asciidoctor-reveal.js[*reveal.js*]. +
+Pour savoir comment les générer, se référer à https://github.com/Ardemius/asciidoctor-presentation#slides-rendering-with-revealjs[ma présentation] sur le sujet.
