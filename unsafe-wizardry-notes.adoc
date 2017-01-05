@@ -16,13 +16,22 @@ Quicky visant à présenter cette classe qui a fait couler beaucoup d’encre de
 * d’exemples précis (instantiation, création d’instance sans constructeur, sérialisation, tableaux extra larges, etc.)
 * et en présentant l’usage qui en est fait par plusieurs grandes sociétés et librairies (Mockito, Hazelcast, etc.)
 
-== Mémoire Off Heap
+== Plan
 
-== TODO
+. Histoire de la classe, et récentes actualités (Hazelcast et Azul au créneau suite aux menaces de suppression d'Oracle)
+. Utilisation de la classe : instanciation
+. Principales fonctionnalités utilisées par les grands groupes (Mémoire Off Heap, etc.)
+
+== Histoire de la classe
+
+On pourrait qualifier `sun.misc.Unsafe` de backdoor permettant à des librairies spécialisées et des développeurs de frameworks de passer outre les barrières de sécurité de Java.
+
 
 == Resources
 
 * http://mobile.lemondeinformatique.fr/actualites/lire-java-9-la-suppression-de-l-api-sunmiscunsafe-agace-les-developpeurs-le-monde-informatique-61900.html
+* https://jaxenter.com/hazelcast-on-java-unsafe-class-119286.html
+* https://www.infoq.com/news/2015/07/oracle-plan-remove-unsafe
 * http://www.inf.usi.ch/lanza/Downloads/Mast2015a.pdf
 * http://howtodoinjava.com/core-java/related-concepts/usage-of-class-sun-misc-unsafe/
 * https://dzone.com/articles/understanding-sunmiscunsafe
