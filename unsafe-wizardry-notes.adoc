@@ -16,29 +16,16 @@ Quicky visant à présenter cette classe qui a fait couler beaucoup d’encre de
 * d’exemples précis (instantiation, création d’instance sans constructeur, sérialisation, tableaux extra larges, etc.)
 * et en présentant l’usage qui en est fait par plusieurs grandes sociétés et librairies (Mockito, Hazelcast, etc.)
 
-== Préparation Paris JUG Young Blood IV - 28/12/2016
+== Préparation avec Jean-Christophe du 28/12/2016
 
-* arriver un peu en avance pour tester le matériel (18h30 au plus tôt, serait l'idéal)
+Conseils :
+
+* *arriver un peu en avance* pour tester le matériel (18h30 au plus tôt, serait l'idéal)
 * faire attention à la résolution
-* attention au life coding ! 
-* prévoir tout en local pour la présentation
+* attention au life coding !
+* prévoir tout en local pour la présentation -> sur poste, sur GitHub, sur clé USB
 * possible de faire les slides en Asciidoctor, suffit d'intégrer les 1er et derniers slides du template
 * faire pêter un JVM *à la fin* de la présentation (un bel écran bleu à la Windows 95)
-
-Parmi les différentes méthodes de Unsafe, présenter (?) :
-
-* mémoire Off Heap
-* sérialisation / désérialisation
-
-=== Plan
-
-. Histoire de Unsafe (perf, pq Java a créé cette classe) et menace de suppression avec Java 9
-. Instanciation d'Unsafe
-. les principaux usages et qui s'en sert (120 méthodes et 20 champs)
-.* Azul / HazelCast / ActivePivot
-. le mot de la fin : suppression à venir de Unsafe dans Java ... X ? (mais avec garantie d'Oracle que les fonctionnalités de la classe seront réintégrées "classiquement dans le JDK")
-. bien donner ses ressources, avec le repo GitHub
-. Aucune classe n'a été maltraitée durant cette présentation, par contre cette JVM... Et boom écran bleu !
 
 === Présentation du projet de Continuous Benchmarking par Khaled HAMLAOUI
 
@@ -50,23 +37,94 @@ Et WireMock également :
 
 == Plan
 
-. Histoire de la classe, et récentes actualités (Hazelcast et Azul au créneau suite aux menaces de suppression d'Oracle)
-. Utilisation de la classe : instanciation
-. Principales fonctionnalités utilisées par les grands groupes (Mémoire Off Heap, etc.)
+. Histoire de la classe (perf, pq Java a créé cette classe), et récentes actualités (Hazelcast et Azul montent au créneau suite aux menaces de suppression d'Oracle du juillet 2015)
+. Utilisation de la classe : comment l'instancier ?
+. Les principaux usages (120 méthodes et 20 champs) et qui s'en sert (Azul / HazelCast / ActivePivot)
+. le mot de la fin : suppression à venir de Unsafe dans Java ... X ? (mais avec garantie d'Oracle que les fonctionnalités de la classe seront réintégrées "classiquement dans le JDK")
+. bien donner ses ressources, avec le repo GitHub
+. Aucune classe n'a été maltraitée durant cette présentation, par contre cette JVM... Et boom écran bleu !
+
 
 == Histoire de la classe
 
-On pourrait qualifier `sun.misc.Unsafe` de backdoor permettant à des librairies spécialisées et des développeurs de frameworks de passer outre les barrières de sécurité de Java.
+Unsafe is an *internal proprietary API*, since the release of Java 6, the compiler warns you when this kind of class issued:
 
+[source, java]
+----
+Unsafe is internal proprietary API and may be removed in a future release
+----
+
+On pourrait qualifier `sun.misc.Unsafe` de backdoor permettant à des librairies spécialisées, et des développeurs de frameworks, de passer outre les barrières de sécurité de Java.
+
+* *Avantages* : on peut accéder à des méthodes généralement plus performantes (car ne "s'encombre pas" de certains contrôles) que celles du JDK, voire à des fonctionnalités non accessibles sinon (lire / écrire sur des adresses mémoires par exemple).footnoteref:[Christoph Engelbert remarks on Unsafe, https://jaxenter.com/hazelcast-on-java-unsafe-class-119286.html] +
+Les méthodes d'Unsafe sont généralement plus performantes car intrinsified footnoteref:[Christoph Engelbert remarks on Unsafe]
+* *Inconvénients* : en ne respectant pas les contrôles normalement effectués par les classes du JDK, les méthodes / champs d'Unsafe, peuvent :
+** Violating Type Safety
+** Violating Method Contracts
+** Uninitialized Objects
+** Monitor Deadlock
+** ou tout simplement crasher la JVM...
+
+And all this doesn't suit Oracle, which in effect is understandable, and was announced bluntly:
+
+[quote, Donald Smith - Oracle's director of product management]
+____
+Let me be blunt -- sun.misc.Unsafe must die in a fire.  It is -- wait for it -- Unsafe.  It must go.  Ignore any kind of theoretical rope and start the path to righteousness *now*.
+____
+Check http://mail.openjdk.java.net/pipermail/openjfx-dev/2015-April/017028.html
+
+
+
+
+
+== Comment utiliser Unsafe ?
+
+== Unsafe pour faire quoi, et par qui ?
+
+* Hazelcast : High Density Memory Store
+
+== L'avenir d'Unsafe
+
+* One of the current suggestions is that proprietary APIs, Unsafe among them, are made accessible by passing a particular flag in the command line
+
+
+== Annexes
+
+=== Java Intrinsics
+
+[quote, Wikipedia, Intrinsic Function]
+____
+In compiler theory, an intrinsic function is a function available for use in a given programming language whose implementation is handled specially by the compiler. Typically, it substitutes a sequence of automatically generated instructions for the original function call, similar to an inline function. Unlike an inline function though, the compiler has an intimate knowledge of the intrinsic function and can therefore better integrate it and optimize it for the situation. This is also called builtin function in many languages.
+____
+
+[quote, Christoph Engelbert - Technical Evangelist at Hazelcast, Intrinsic Function ]
+____
+that means that the actual native call is never really executed but a special piece of Assembler code is injected right into the jitted Java code. This is essentially necessary if you work in the low latency space.
+____
 
 == Resources
 
-* http://mobile.lemondeinformatique.fr/actualites/lire-java-9-la-suppression-de-l-api-sunmiscunsafe-agace-les-developpeurs-le-monde-informatique-61900.html
-* https://jaxenter.com/hazelcast-on-java-unsafe-class-119286.html
-* https://www.infoq.com/news/2015/07/oracle-plan-remove-unsafe
-* http://www.inf.usi.ch/lanza/Downloads/Mast2015a.pdf
-* http://howtodoinjava.com/core-java/related-concepts/usage-of-class-sun-misc-unsafe/
-* https://dzone.com/articles/understanding-sunmiscunsafe
-* http://mishadoff.com/blog/java-magic-part-4-sun-dot-misc-dot-unsafe/
+* Histoire et menaces de suppression :
+** http://mobile.lemondeinformatique.fr/actualites/lire-java-9-la-suppression-de-l-api-sunmiscunsafe-agace-les-developpeurs-le-monde-informatique-61900.html
+** https://jaxenter.com/hazelcast-on-java-unsafe-class-119286.html
+** https://www.infoq.com/news/2015/07/oracle-plan-remove-unsafe
+** Unsafe must die in a fire : http://mail.openjdk.java.net/pipermail/openjfx-dev/2015-April/017028.html
+* Utilisation d'Unsafe par les grands groupes :
+** http://www.inf.usi.ch/lanza/Downloads/Mast2015a.pdf
+* Fonctionnalités d'Unsafe :
+** http://howtodoinjava.com/core-java/related-concepts/usage-of-class-sun-misc-unsafe/
+** https://dzone.com/articles/understanding-sunmiscunsafe
+** http://mishadoff.com/blog/java-magic-part-4-sun-dot-misc-dot-unsafe/
+* Les alternatives à venir pour Unsafe :
+** Variables Handles : http://openjdk.java.net/jeps/193 +
+Attention ! Les Var Handles ne représentent qu'un remplacement *partiel* de Unsafe. +
+[quote, Hazelcast - Christoph Engelbert]
+____
+Variable Handles or (VarHandles) are not meant to be a full sun.misc.Unsafe replacement but to replace the memory access features.
+____
+
+Java Intrinsics :
+** http://vanillajava.blogspot.fr/2012/11/java-intrinsics-and-performance.html#!/2012/11/java-intrinsics-and-performance.html (blog de Peter Lawrey)
+** https://en.wikipedia.org/wiki/Intrinsic_function
 
 
