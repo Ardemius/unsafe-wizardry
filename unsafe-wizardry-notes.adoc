@@ -16,6 +16,38 @@ Quicky visant à présenter cette classe qui a fait couler beaucoup d’encre de
 * d’exemples précis (instantiation, création d’instance sans constructeur, sérialisation, tableaux extra larges, etc.)
 * et en présentant l’usage qui en est fait par plusieurs grandes sociétés et librairies (Mockito, Hazelcast, etc.)
 
+== Préparation Paris JUG Young Blood IV - 28/12/2016
+
+* arriver un peu en avance pour tester le matériel (18h30 au plus tôt, serait l'idéal)
+* faire attention à la résolution
+* attention au life coding ! 
+* prévoir tout en local pour la présentation
+* possible de faire les slides en Asciidoctor, suffit d'intégrer les 1er et derniers slides du template
+* faire pêter un JVM *à la fin* de la présentation (un bel écran bleu à la Windows 95)
+
+Parmi les différentes méthodes de Unsafe, présenter (?) :
+
+* mémoire Off Heap
+* sérialisation / désérialisation
+
+=== Plan
+
+. Histoire de Unsafe (perf, pq Java a créé cette classe) et menace de suppression avec Java 9
+. Instanciation d'Unsafe
+. les principaux usages et qui s'en sert (120 méthodes et 20 champs)
+.* Azul / HazelCast / ActivePivot
+. le mot de la fin : suppression à venir de Unsafe dans Java ... X ? (mais avec garantie d'Oracle que les fonctionnalités de la classe seront réintégrées "classiquement dans le JDK")
+. bien donner ses ressources, avec le repo GitHub
+. Aucune classe n'a été maltraitée durant cette présentation, par contre cette JVM... Et boom écran bleu !
+
+=== Présentation du projet de Continuous Benchmarking par Khaled HAMLAOUI
+
+Gatling > JMX > ELK +
+Et WireMock également :
+
+* intercepte toutes les requêtes GET et POST en sortie
+* permet de mocker des URI, soit avec une configuration mock côté WireMock, soit avec rien, soit en connectant réellement un backoffice derrière
+
 == Plan
 
 . Histoire de la classe, et récentes actualités (Hazelcast et Azul au créneau suite aux menaces de suppression d'Oracle)
