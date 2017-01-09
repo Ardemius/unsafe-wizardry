@@ -102,8 +102,6 @@ Mais alors pourquoi s'en servir ?
 
 En juillet 2015, du fait du travail sur Jigsaw visant à rendre Java plus modulaire (voir la JEP 260), Oracle laisse entendre que l'API pourrait disparaître à court terme, avec Java 9 en ligne de mire :
 
-And all this doesn't suit Oracle, which in effect is understandable, and was announced bluntly:
-
 [quote, Donald Smith - Oracle's director of product management]
 ____
 Let me be blunt -- sun.misc.Unsafe must die in a fire.  It is -- wait for it -- Unsafe.  It must go.  Ignore any kind of theoretical rope and start the path to righteousness *now*.
