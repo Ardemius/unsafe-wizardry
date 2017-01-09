@@ -69,6 +69,8 @@ Alors, pour commencer, c'est quoi que cette classe `sun.misc.Unsafe` ?
 
 == Présentation et histoire de la classe
 
+=== Qu'est ce que Unsafe ?
+
 Comme tous les packages `sun.*`, Unsafe est une *internal proprietary API*. +
 Ce qui veut dire qu'en principe, elle n'est censé être utilisée *que* par Oracle pour l'implémentation de *SA* plateforme Java (ce qui sous-entend HotSpot uniquement). +
 Comme le rappelle le site d'Oracle :
@@ -79,7 +81,7 @@ The sun.* packages are not part of the supported, public interface.
 [...]
 In general, writing java programs that rely on sun.* is risky: those classes are not portable, and are not supported.
 ____
-Néanmoins, elle est techniquement utilisable par tous, mais son suivi n'est donc pas assuré par Oracle, elle n'est pas documentée, et ne dispose d'aucune garantie de portabilité d'une plateforme Java à une autre. +
+Néanmoins, elle est techniquement utilisable par tous, mais son suivi n'est donc pas assuré par Oracle, elle n'est pas documentée, ne dispose d'aucune garantie de portabilité d'une plateforme Java à une autre, et peut être modifiée à tout moment. +
 -> TODO : concernant ce dernier point, revenir dessus en parlant des méthodes intrinsified
 
 On peut d'ailleurs noter que, depuis la sortie de Java 6, le compilateur vous avertit lorsque vous utilisez une classe de ce type :
@@ -91,30 +93,68 @@ YourClassUsingUnsafe.java:15: warning: Unsafe is internal proprietary API and ma
 
 Mais alors pourquoi s'en servir ?
 
-* *Avantages* : on peut accéder à des méthodes généralement plus performantes (car "intrinsified" pour la plupart, et ne s'encombrant pas de certains contrôles) que celles du JDK, voire à des fonctionnalités non accessibles sinon (lire / écrire sur des adresses mémoires par exemple).footnoteref:[Christoph Engelbert remarks on Unsafe, https://jaxenter.com/hazelcast-on-java-unsafe-class-119286.html] 
+* *Avantages* : +
+Principalement, pour 2 grandes raisons :
 
-* *Inconvénients* : en ne respectant pas les contrôles normalement effectués par les classes du JDK, les méthodes / champs d'Unsafe, peuvent :
-** Violating Type Safety
-** Violating Method Contracts
-** Uninitialized Objects
-** Monitor Deadlock
-** ou tout simplement crasher la JVM...
+** certaines fonctionnalités d'Unsafe ne sont disponibles nulle part ailleurs dans Java : +
+lecture depuis / écriture à des adresses mémoires, accès à la mémoire Off Heap, etc.
 
-En juillet 2015, du fait du travail sur Jigsaw visant à rendre Java plus modulaire (voir la JEP 260), Oracle laisse entendre que l'API pourrait disparaître à court terme, avec Java 9 en ligne de mire :
+** La performance ! Quasiment toutes les méthodes d'Unsafe sont *intrinsèques* ("intrinsics" ou "intrinsified methods" en anglais), d'où des performances généralement bien meilleures que celles des méthodes "classiques". +
+Qu'est-ce que une méthode intrinsèque ? 
+[quote, Java Bug Database JDK-8076112]
+____
+Intrinsics are high optimized (mostly hand written assembler) code which are used instead of normal JIT compiled code.
+____
+C'est donc le JIT compiler qui, si l'optimisation est disponible, va optimiser notre code en le remplaçant par du code assembleur spécifique.
+
+Evidemment, l'utilisation d'Unsafe n'est pas sans risque, ces méthodes très bas niveau ne respectant les barrières de sécurité classiques de Java. +
+Parmi les risques encourus, on trouve, entre autres :
+
+* violation d'accès mémoire : avec Unsafe, on peut écrire en dehors des plages mémoires allouées...
+* violation de la sureté des types : avec Unsafe, on peut stocker un int dans un type référence...
+* violer les contrats de méthodes : avec Unsafe, on peut faire lancer une checked exception à une méthode qui ne la déclare ou ne la catch pas...
+* ou tout simplement faire crasher la JVM... en libérant la mémoire d'une plage d'adresses réservées...
+
+=== Plan de suppression de la classe
+
+En juillet 2015, du fait du travail sur Jigsaw visant à rendre Java plus modulaire (voir la JEP 260), Oracle a laissé entendre que l'API pourrait ne plus être directement accessible avec le JDK 9, puis définitivement supprimée avec le JDK 10. +
+Le problème est que cette API, même ce n'aurait normalement pas du être le cas, est aujourd'hui utilisée par de nombreux projets et outils, et qu'elle ne dispose pas encore de véritables solutions de remplacement pour toutes ses fonctionnalités.
+
+De plus, Oracle ne s'est pas montré très enclin à négocier sur le sujet :
 
 [quote, Donald Smith - Oracle's director of product management]
 ____
-Let me be blunt -- sun.misc.Unsafe must die in a fire.  It is -- wait for it -- Unsafe.  It must go.  Ignore any kind of theoretical rope and start the path to righteousness *now*.
-____
-Check http://mail.openjdk.java.net/pipermail/openjfx-dev/2015-April/017028.html
-
-[quote, Martin Thompson]
-____
-Now it has to be said that "with great power comes great responsibility" and if you use Unsafe it is effectively the same as programming in C, and with that can come memory access violations when you get offsets wrong.
+Let me be blunt -- sun.misc.Unsafe must die in a fire. 
+It is -- wait for it -- Unsafe. It must go.  
+Ignore any kind of theoretical rope and start the path to righteousness *now*.
 ____
 
+D'où la levée de boucliers de nombreuses sociétés dont Hazelcast, Azul Systems et OpenHFT pour ne citer qu'elles.
 
 == Comment utiliser Unsafe ?
+
+On ne peut pas instancier Unsafe directement, la classe est `final` et son constructeur privé. +
+De plus, la méthode `Unsafe.getUnsafe()` est pour ainsi dire protégée, si vous l'appelez vous aurez probablement une `SecurityException`.
+
+Donc, le plus simple pour l'instancier est d'utiliser la réflexion :
+
+[code, java]
+----
+Field f = Unsafe.class.getDeclaredField("theUnsafe");
+f.setAccessible(true);
+Unsafe unsafe = (Unsafe) f.get(null);
+----
+
+Ou
+
+[code, java]
+----
+Constructor<Unsafe> c = Unsafe.class.getDeclaredConstructor();
+c.setAccessible(true);
+Unsafe unsafe = c.newInstance();
+----
+
+Dans les 2 cas, vous récupérez une instance d'Unsafe, vous permettant d'accéder à ses fonctionnalités.
 
 == Unsafe pour faire quoi, et par qui ?
 
@@ -122,7 +162,8 @@ ____
 
 == L'avenir d'Unsafe
 
-* One of the current suggestions is that proprietary APIs, Unsafe among them, are made accessible by passing a particular flag in the command line
+* One of the current suggestions is that proprietary APIs, Unsafe among them, are made accessible by passing a particular flag in the command line.
+* Variables Handles (JEP 193) : cette JEP n'est pas une solution de remplacement de toute l'API, elle se concentre sur la partie d'accès à la mémoire.
 
 
 == Annexes
@@ -144,7 +185,27 @@ ____
 The Unsafe method wins by a significant margin because in Hotspot, and many other JVMs, the optimiser treats these operations as intrinsics and replaces the call with assembly instructions to perform the memory manipulation.
 ____
 
+[quote, Java Bug Database JDK-8076112]
+____
+Intrinsics are high optimized (mostly hand written assembler) code which are used instead of normal JIT compiled code.
+____
+
+[quote, Wikipedia, Intrinsic Function]
+____
+The HotSpot JVM's just-in-time compiler also has intrinsics for specific Java APIs.
+____
+
+[quote, http://bad-concurrency.blogspot.fr/2012/08/arithmetic-overflow-and-intrinsics.html]
+____
+Inside of Hotspot (other JVMs may work differently) a number of things are happening to make this work. As Hotspot loads classes it builds an abstract syntax tree (AST) representation of the Java byte code. 
+When executing the Java byte code, if the interpreter notices that a particular method has been called a certain number of times2 (default is 10000) then Hotspot will look to optimise and JIT that method. 
+Before optimising, the method signature will be matched against the set of predefined intrinsics, declared in vmSymbols.hpp. 
+If there is a match Hotspot will replace the nodes in AST with a set of nodes specific to the intrinsic that was matched. At some later point during the compile pass of the AST, it will see the new nodes and generate the optimised machine specific assembly for that part of the tree and type of node.
+____
+
 == Resources
+
+* code de la classe Unsafe : http://grepcode.com/file/repository.grepcode.com/java/root/jdk/openjdk/8u40-b25/sun/misc/Unsafe.java?av=f
 
 * Histoire et menaces de suppression :
 ** Unsafe ?! Qu'est-ce donc ? http://www.oracle.com/technetwork/java/faq-sun-packages-142232.html
@@ -153,17 +214,24 @@ ____
 Parmi les contributeurs du document : Greg Luck (Hazelcast), Chris Engelbert (Hazelcast), Martijn Verburg (Java Champion), Ben Evans (Java Champion), Gil Tene (Azul Systems), Peter Lawrey (Java Champion), pour ne citer qu'eux...
 ** Menaces de suppression d'Oracle - avis d'Oracle : _"Private APIs not usable in Java 9?"_, et le fameux _"Unsafe must die in a fire"_ : http://mail.openjdk.java.net/pipermail/openjfx-dev/2015-April/017028.html
 ** Menaces de suppression d'Oracle - avis de Greg Luck, CEO d'Hazelcast : http://mobile.lemondeinformatique.fr/actualites/lire-java-9-la-suppression-de-l-api-sunmiscunsafe-agace-les-developpeurs-le-monde-informatique-61900.html
-** Menaces de suppression d'Oracle - avis de Christoph Engelbert, Technical Evangelist d'Hazelcast : https://jaxenter.com/hazelcast-on-java-unsafe-class-119286.html
-** https://www.infoq.com/news/2015/07/oracle-plan-remove-unsafe
-** Benchmark par Martin Thompson d'Unsafe, le gain réalisé par les méthodes "intrinsified" (intrinsèques) : https://mechanical-sympathy.blogspot.fr/2012/07/native-cc-like-performance-for-java.html
+** Menaces de suppression d'Oracle - avis de Christoph Engelbert, Technical Evangelist d'Hazelcast : https://jaxenter.com/hazelcast-on-java-unsafe-class-119286.html +
+Cite une fonctionnalité disponible uniquement via Unsafe : la lecture depuis / écriture à des adresses mémoires en Java.
+** Menaces de suppression d'Oracle : https://www.infoq.com/news/2015/07/oracle-plan-remove-unsafe +
+Détaille certaines des solutions de remplacement pour Unsafe
+** Benchmark par Martin Thompson d'Unsafe, le gain réalisé par les méthodes "intrinsified" (intrinsèques) : https://mechanical-sympathy.blogspot.fr/2012/07/native-cc-like-performance-for-java.html +
+Parle des potentiels problèmes de violation d'accès mémoire avec Unsafe (voir section _Analysis_)
 
 * Utilisation d'Unsafe par les grands groupes :
-** http://www.inf.usi.ch/lanza/Downloads/Mast2015a.pdf
+** http://www.inf.usi.ch/lanza/Downloads/Mast2015a.pdf +
+Etude complète, présente également les risques liés à l'utilisation d'Unsafe +
+A fait l'objet d'un talk en 2015 : [https://www.youtube.com/watch?v=_mIBxVbAT_Y|Use at Your Own Risk: The Java Unsafe API in the Wild]
+
 * Fonctionnalités d'Unsafe :
 ** http://mydailyjava.blogspot.fr/2013/12/sunmiscunsafe.html
 ** http://howtodoinjava.com/core-java/related-concepts/usage-of-class-sun-misc-unsafe/
 ** https://dzone.com/articles/understanding-sunmiscunsafe
 ** http://mishadoff.com/blog/java-magic-part-4-sun-dot-misc-dot-unsafe/
+
 * Les alternatives à venir pour Unsafe :
 ** Variables Handles : http://openjdk.java.net/jeps/193 +
 Attention ! Les Var Handles ne représentent qu'un remplacement *partiel* de Unsafe. +
@@ -174,9 +242,23 @@ ____
 
 Java Intrinsics :
 
-* http://vanillajava.blogspot.fr/2012/11/java-intrinsics-and-performance.html#!/2012/11/java-intrinsics-and-performance.html (blog de Peter Lawrey)
+* http://vanillajava.blogspot.fr/2012/11/java-intrinsics-and-performance.html (blog de Peter Lawrey) +
+Contient une comparaison des perfs entre une méthode intrinsified, Integer.bitCount(), et la copie de son code, exécutée telle quelle (rapport de 6 en faveur de la version intrinsified).
 * https://en.wikipedia.org/wiki/Intrinsic_function
 * https://mechanical-sympathy.blogspot.fr/2012/07/native-cc-like-performance-for-java.html
+* http://bugs.java.com/bugdatabase/view_bug.do?bug_id=8076112 +
+Contient une bonne définition des intrinsics : _Intrinsics are high optimized (mostly hand written assembler) code which are used instead of normal JIT compiled code._
+* fonctionnement des intrinsics : https://shipilev.net/blog/2016/arrays-wisdom-ancients/ +
+Voir la javadoc de l'annotation `HotSpotIntrinsicCandidate`
+* fonctionnement des intrinsics : https://www.infoq.com/articles/OpenJDK-HotSpot-What-the-JIT
+Voir la section _Intrinsics_
+* fonctionnement des intrinsics : http://psy-lob-saw.blogspot.fr/2012/10/java-intrinsics-are-not-jni-calls.html
+* Fonctionnement des intrinsics : http://bad-concurrency.blogspot.fr/2012/08/arithmetic-overflow-and-intrinsics.html +
+Contient la meilleure explication que j'ai trouvé sur le fonctionnement des intrinsics (voir la section _How it Works_) +
+Propose également un benchmark comparatif autour de Integer.bitCount()
+* Quand les intrinsics sont-ils utilisés ? http://stackoverflow.com/questions/23041036/why-do-java-intrinsic-functions-still-have-code +
+-> *systématiquement*, dès lors que le code assembleur optimisé est disponible (varie suivant les JVMs !) +
+Voir cet post de SO pour confirmation : http://stackoverflow.com/questions/15085294/java-lang-math-log-replaced-by-intrinsic-call-why-not-java-lang-math-exp
 
 What librairies use Unsafe?
 
