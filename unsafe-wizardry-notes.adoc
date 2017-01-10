@@ -72,7 +72,7 @@ Alors, pour commencer, c'est quoi que cette classe `sun.misc.Unsafe` ?
 
 === Qu'est ce que Unsafe ?
 
-Comme tous les packages `sun.*`, Unsafe est une *internal proprietary API*. +
+Comme tous les packages `sun.{asterisk}`, Unsafe est une *internal proprietary API*. +
 Ce qui veut dire qu'en principe, elle n'est censé être utilisée *que* par Oracle pour l'implémentation de *SA* plateforme Java (ce qui sous-entend HotSpot uniquement). +
 Comme le rappelle le site d'Oracle :
 
@@ -316,12 +316,12 @@ ____
 In compiler theory, an intrinsic function is a function available for use in a given programming language whose implementation is handled specially by the compiler. Typically, it substitutes a sequence of automatically generated instructions for the original function call, similar to an inline function. Unlike an inline function though, the compiler has an intimate knowledge of the intrinsic function and can therefore better integrate it and optimize it for the situation. This is also called builtin function in many languages.
 ____
 
-[quote, Christoph Engelbert - Technical Evangelist at Hazelcast, Intrinsic Function ]
+[quote, Christoph Engelbert - Technical Evangelist at Hazelcast]
 ____
 Another reason for Unsafe is performance, it that almost all methods are intrinsified that means that the actual native call is never really executed but a special piece of Assembler code is injected right into the jitted Java code. This is essentially necessary if you work in the low latency space.
 ____
 
-[quote, Martin Thompson - Technical Evangelist at Hazelcast, Intrinsic Function ]
+[quote, Martin Thompson]
 ____
 The Unsafe method wins by a significant margin because in Hotspot, and many other JVMs, the optimiser treats these operations as intrinsics and replaces the call with assembly instructions to perform the memory manipulation.
 ____
@@ -364,8 +364,8 @@ Parle des potentiels problèmes de violation d'accès mémoire avec Unsafe (voir
 
 * Utilisation d'Unsafe par les grands groupes :
 ** http://www.inf.usi.ch/lanza/Downloads/Mast2015a.pdf +
-Etude complète, présente également les risques liés à l'utilisation d'Unsafe +
-A fait l'objet d'un talk en 2015 : [https://www.youtube.com/watch?v=_mIBxVbAT_Y|Use at Your Own Risk: The Java Unsafe API in the Wild]
+Etude complète, présente également *les risques* liés à l'utilisation d'Unsafe +
+A fait l'objet d'un talk en 2015 : https://www.youtube.com/watch?v=_mIBxVbAT_Y[Use at Your Own Risk: The Java Unsafe API in the Wild]
 
 * Fonctionnalités d'Unsafe :
 ** http://mishadoff.com/blog/java-magic-part-4-sun-dot-misc-dot-unsafe/ +
@@ -401,9 +401,10 @@ Propose également un benchmark comparatif autour de Integer.bitCount()
 * Quand les intrinsics sont-ils utilisés ? http://stackoverflow.com/questions/23041036/why-do-java-intrinsic-functions-still-have-code +
 -> *systématiquement*, dès lors que le code assembleur optimisé est disponible (varie suivant les JVMs !) +
 Voir cet post de SO pour confirmation : http://stackoverflow.com/questions/15085294/java-lang-math-log-replaced-by-intrinsic-call-why-not-java-lang-math-exp
+* command line flag pour activer / désactiver les intrinsics : http://stackoverflow.com/questions/23058309/aes-ni-intrinsics-enabled-by-default
 
 What librairies use Unsafe?
 
-* Objenesis[http://objenesis.org/|site][https://github.com/easymock/objenesis|code]: to instantiate objects by various ways +
+* Objenesis (http://objenesis.org/[site] / https://github.com/easymock/objenesis[code]): to instantiate objects by various ways +
 Librairie utilisée en interne par Spring.
 

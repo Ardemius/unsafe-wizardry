@@ -16,10 +16,150 @@
 == Sorcellerie en Java
 
 Outrepasser les interdits avec `sun.misc.Unsafe`
+ +
+ +
+ +
+Thomas SCHWENDER +
+icon:github[] https://github.com/Ardemius/[GitHub] / icon:twitter[role="blue"] https://twitter.com/thomasschwender[@thomasschwender] +
+image:logo-startech-java.png[Logo StarTECH,150,150]
+
+[NOTE.speaker]
+--
+Bonjour, je m'appelle Thomas SCHWENDER, et je suis développeur JAVA senior (certains diraient architecte) chez SOFTEAM Cadextan, dont j'anime également le JUG interne (-> Montrer le logo du JUG ?). +
+En tant que techos, parmi mes hobbies du moment, on retrouve : jouer avec les rouages de Maven / Gradle, tripatouiller les entrailles de Git, prêcher la doc utile ("dans le wiki je crois"), ET mettre le nez dans la perf de notre langague préféré, d'où cette présentation !
+
+Alors, comme son titre, un peu racoleur, le laisse penser, nous sommes ici pour parler de la fameuse classe / API `sun.misc.Unsafe`, expliquer pourquoi elle défraie la chronique depuis bientôt 2 ans (vous avez probablement eu vent du projet de suppression à venir), et bien sûr, vous montrer un peu comment certains grands noms de la tech utilisent sa "magie", ou plutôt sa *sorcellerie* !
+--
+
+== Au programme
+
+* Mais c'est quoi `Unsafe` ?
+* Actualités, plan de suppression et levée de boucliers
+* Comment l'utiliser
+* Use cases
+** *Instancier une classe sans passer par le constructeur*
+** *Tableaux XXL en mémoire Off Heap*
+** *Corruption de la mémoire*
+* L'avenir d'Unsafe
+
+== Vous avez dit Unsafe ?
+
+* Comme tous les packages `sun.{asterisk}`, `sun.misc.Unsafe` est une *internal proprietary API*.
+* Seul Oracle est censé l'utiliser pour l'implémentation de *SA* plateforme Java (JVM HotSpot)
+
+=== !
+
+[quote, Oracle Java FAQ]
+____
+The sun.* packages are not part of the supported, public interface. +
+... +
+In general, writing java programs that rely on sun.* is risky: those classes are not portable, and are not supported.
+____
+
+=== !
+
+L'API est néanmoins utilisable par tous, *MAIS* :
+
+[%step]
+* son *suivi* n'est donc *pas assuré* par Oracle
+* elle n'est *pas documentée*
+* ne dispose d'*aucune garantie de portabilité* d'une plateforme Java à une autre
+* peut être *modifiée à tout moment*
+
+=== ! 
+
+Depuis Java 6, *le compilateur vous met en garde* quand vous utilisez une classe de ce type :
+
+[source, java]
+----
+YourClassUsingUnsafe.java:15: warning: Unsafe is internal 
+proprietary API and may be removed in a future release
+----
+
+[%notitle]
+=== Mais alors, pourquoi s'en servir ?
+
+image::why.png[background, size=contain]
+
+=== Ici et nulle part ailleurs ! 
+
+Certaines fonctionnalités d'Unsafe ne sont disponibles *nulle part ailleurs* dans Java :
+
+[%step]
+* lecture depuis / écriture à des *adresses mémoires*
+* accès à la mémoire *Off Heap*
+
+=== I'm *REALLY* fast!
+
+Quasiment toutes les méthodes d'Unsafe sont des *_intrinsics_* (ou _intrinsified methods_), d'où des *performances généralement bien meilleures* que celles des méthodes "classiques".
+
+[NOTE.speaker]
+--
+Peter Lawrey, d'OpenHFT, a fait une comparaison des perfs entre une méthode intrinsified, `Integer.bitCount()`, et la copie du code correspondant, exécuté tel quel : rapport de 6 en faveur de la version intrinsified.
+--
+
+=== Intrinsics ?
+
+[quote, Java Bug Database JDK-8076112]
+____
+Intrinsics are high optimized (mostly hand written assembler) code which are used instead of normal JIT compiled code.
+____
+
+C'est donc le *JIT compiler* qui, si l'optimisation est disponible, va optimiser notre code en le remplaçant par du *code assembleur spécifique*.
+
+[NOTE.speaker]
+--
+Les intrinsics sont *systématiquement* utilisés, dès lors que le code assembleur optimisé est disponible (ce qui varie suivant la JVM) +
+Pour activer les Advanced Encryption Standard (AES) : `-XX:+UseAES -XX:+UseAESIntrinsics` +
+Pour les désactiver : `-XX:-UseAES -XX:-UseAESIntrinsics`
+Les AES sont activées par défaut.
+--
+
+[%notitle]
+=== With great power comes great responsibility...
+
+image::with-great-power.jpg[power and responsibility, size=contain]
+
+=== L'utilisation d'*Unsafe* n'est pas sans risque
+
+Ses méthodes très bas niveau ne respectent *les barrières de sécurité classiques de Java*. +
+Parmi les risques encourus, on trouve, entre autres :
+
+=== Violation d'accès mémoire
+
+Avec Unsafe, on peut écrire en dehors des plages mémoires allouées...
+
+=== Violation de la sureté des types
+
+Avec Unsafe, on peut stocker un int dans un type référence...
+
+=== Violation des contrats de méthodes
+
+Avec Unsafe, on peut faire lancer une checked exception à une méthode qui ne la déclare ou ne la catch pas...
+
+=== Tout simplement faire crasher la JVM...
+
+Par exemple, en libérant la mémoire d'une plage d'adresses réservée...
+
+[NOTE.speaker]
+--
+le fameux `unsafe.freeMemory(1);`
+--
+
+== Demandez le journal !
+
+En juillet 2015
 
 == Instancier une classe sans passer par le constructeur
+
+== Ressources & références
+
+* Slides : https://ardemius.github.io/unsafe-wizardry/unsafe-wizardry-slides.html
+* Code des slides : https://github.com/Ardemius/unsafe-wizardry
+
+* Toutes les *références* utilisées pour la création de ce quicky sont listées https://github.com/Ardemius/unsafe-wizardry/blob/master/unsafe-wizardry-notes.adoc#resources[ici].
 
 [%notitle]
 == dernier slide du template du ParisJUG
 
-image::last-slide_templateJug2016.jpg[background, size=contain]
+image::last-slide_templateJug2016.jpg[last slide, size=contain]

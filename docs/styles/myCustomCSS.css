@@ -7,6 +7,15 @@
 .reveal b {
   color: #FF6A00; }
 
+/* a class selector, to custom some given text using the syntax "[CYAN]#some text#" */
 .orange {
     color: #FF6A00;
+}
+.blue {
+    color: blue;
+}
+
+/* we do not want border around images */
+.reveal section img { 
+	background:none; border:none; box-shadow:none; 
 }
