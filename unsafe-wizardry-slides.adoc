@@ -164,6 +164,15 @@ De plus, Oracle ne s'est pas montré très enclin à négocier sur le sujet...
 
 image::die-in-a-fire.png[Unsafe must die in a fire, size=contain]
 
+=== ! 
+
+[quote, Donald Smith - Oracle's director of product management]
+____
+Let me be blunt -- sun.misc.Unsafe must die in a fire. 
+It is -- wait for it -- Unsafe. It must go.  
+Ignore any kind of theoretical rope and start the path to righteousness *now*.
+____
+
 === !
 
 Résultat : +
