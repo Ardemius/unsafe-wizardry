@@ -1,4 +1,5 @@
-= Sorcellerie en Java : outrepasser les interdits avec `sun.misc.Unsafe`
+= &nbsp;
+// first line is a non breaking space to avoid having a title in addition to the background image
 // classic AsciiDoctor attributes
 :icons: font
 :imagesdir: images
@@ -8,8 +9,17 @@
 // reveal.js attributes
 :customcss: styles/myCustomCSS.css
 :revealjs_theme: white
+// customize title slide
+:title-slide-background-image: first-slide_templateJug2016.jpg
+:title-slide-background-size: contain
+
+== Sorcellerie en Java
+
+Outrepasser les interdits avec `sun.misc.Unsafe`
 
 == Instancier une classe sans passer par le constructeur
 
+[%notitle]
+== dernier slide du template du ParisJUG
 
-
+image::last-slide_templateJug2016.jpg[background, size=contain]

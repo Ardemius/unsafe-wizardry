@@ -1,38 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Sorcellerie en Java : outrepasser les interdits avec sun.misc.Unsafe</title><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui" name="viewport"><link href="reveal.js/css/reveal.css" rel="stylesheet"><link rel="stylesheet" href="reveal.js/css/theme/white.css" id="theme"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.3.0/css/font-awesome.min.css"><link href="reveal.js/lib/css/zenburn.css" rel="stylesheet"><script>document.write( '<link rel="stylesheet" href="reveal.js/css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );</script><link rel="stylesheet" href="styles/myCustomCSS.css"></head><body><div class="reveal"><div class="slides"><section class="title"><h1>Sorcellerie en Java </h1><h2>outrepasser les interdits avec <code>sun.misc.Unsafe</code></h2></section><section id="_instancier_une_classe_sans_passer_par_le_constructeur"><h2>Instancier une classe sans passer par le constructeur</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">public class UnsafeDemo
-{
-    public static void main(String[] args) throws NoSuchFieldException, SecurityException,
-                            IllegalArgumentException, IllegalAccessException, InstantiationException
-    {
-        Field f = Unsafe.class.getDeclaredField("theUnsafe"); //Internal reference
-        f.setAccessible(true);
-        Unsafe unsafe = (Unsafe) f.get(null);
-
-        //This creates an instance of player class without any initialization
-        Player p = (Player) unsafe.allocateInstance(Player.class);
-        System.out.println(p.getAge());     //Print 0
-
-        p.setAge(45);                       //Let's now set age 45 to un-initialized object
-        System.out.println(p.getAge());     //Print 45
-
-        System.out.println(new Player().getAge());  //This the normal way to get fully initialized object; Prints 50
-    }
-}
-
-class UnsafeTest {
-    private int someInt = 42;
-
-    public UnsafeTest() {
-        this.age = 50;
-    }
-    public int getAge(){
-        return this.age;
-    }
-    public void setAge(int age){
-        this.age = age;
-    }
-}</code></pre></div></div></section>
-<section id="_2_columns_test"><h2>2 columns test</h2><table class="tableblock frame-all grid-all" style="width:100%"><colgroup><col style="width:50%"><col style="width:50%"></colgroup><tbody><tr><td class="tableblock halign-left valign-top"><div><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">Field f = Unsafe.class.getDeclaredField("theUnsafe"); //Internal reference</code></pre></div></div></div></td><td class="tableblock halign-left valign-top"><div><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">private int age = 12;</code></pre></div></div></div></td></tr></tbody></table></section>
-<section id="_test"><h2>Test</h2><div class="paragraph"><p>Texte en <strong>gras</strong> et en <strong class="red">rouge</strong></p></div></section></div></div><script src="reveal.js/lib/js/head.min.js"></script><script src="reveal.js/js/reveal.js"></script><script>// See https://github.com/hakimel/reveal.js#configuration for a full list of configuration options
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>&nbsp;</title><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui" name="viewport"><link href="reveal.js/css/reveal.css" rel="stylesheet"><link rel="stylesheet" href="reveal.js/css/theme/white.css" id="theme"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.3.0/css/font-awesome.min.css"><link href="reveal.js/lib/css/zenburn.css" rel="stylesheet"><script>document.write( '<link rel="stylesheet" href="reveal.js/css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );</script><link rel="stylesheet" href="styles/myCustomCSS.css"></head><body><div class="reveal"><div class="slides"><section class="title" data-background-size="contain" data-background-image="images/first-slide_templateJug2016.jpg"><h1>&nbsp;</h1></section><section id="_sorcellerie_en_java"><h2>Sorcellerie en Java</h2><div class="paragraph"><p>Outrepasser les interdits avec <code>sun.misc.Unsafe</code></p></div></section>
+<section id="_instancier_une_classe_sans_passer_par_le_constructeur"><h2>Instancier une classe sans passer par le constructeur</h2></section>
+<section id="_dernier_slide_du_template_du_parisjug" data-background-image="images/last-slide_templateJug2016.jpg" data-background-size="contain"></section></div></div><script src="reveal.js/lib/js/head.min.js"></script><script src="reveal.js/js/reveal.js"></script><script>// See https://github.com/hakimel/reveal.js#configuration for a full list of configuration options
 Reveal.initialize({
   // Display controls in the bottom right corner
   controls: true,
