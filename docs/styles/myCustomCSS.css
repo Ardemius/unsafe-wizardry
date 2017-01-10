@@ -14,6 +14,9 @@
 .blue {
     color: blue;
 }
+.red {
+    color: red;
+}
 
 /* we do not want border around images */
 .reveal section img { 

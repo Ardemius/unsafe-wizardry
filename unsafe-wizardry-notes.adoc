@@ -119,7 +119,7 @@ Parmi les risques encourus, on trouve, entre autres :
 === Plan de suppression de la classe
 
 En juillet 2015, du fait du travail sur Jigsaw visant à rendre Java plus modulaire (voir la JEP 260), Oracle a laissé entendre que l'API pourrait ne plus être directement accessible avec le JDK 9, puis définitivement supprimée avec le JDK 10. +
-Le problème est que cette API, même ce n'aurait normalement pas du être le cas, est aujourd'hui utilisée par de nombreux projets et outils, et qu'elle ne dispose pas encore de véritables solutions de remplacement pour toutes ses fonctionnalités.
+Le problème est que cette API, même si ce n'aurait normalement pas du être le cas, est aujourd'hui utilisée par de nombreux projets et outils, et qu'elle ne dispose pas encore de véritables solutions de remplacement pour toutes ses fonctionnalités.
 
 De plus, Oracle ne s'est pas montré très enclin à négocier sur le sujet :
 
@@ -164,13 +164,14 @@ Parmi les nombreux use cases dans lesquels elles sont utilisées, j'ai choisi de
 
 * Instancier une classe sans passer par le constructeur
 * Créer des tableaux extra larges en utilisant la mémoire Off Heap
+* Corruption de la mémoire !
 
 === Instancier une classe sans passer par le constructeur
 
 Ce use case est fortement utilisé par Spring Core, Objenesis et Mockito.
 
 En utilisant la méthode `allocateInstance()`, on peut créer une instance d'une classe sans invoquer son constructeur, ni ses initialisations de variables. +
-Cela fonctionne également pour des méthodes dont le constructeur est privé (ayons une petite pensée pour les Singletons...)
+Cela fonctionne également pour des classes dont le constructeur est privé (ayons une petite pensée pour les Singletons...)
 
 [source, java]
 ----
@@ -190,10 +191,10 @@ class UnsafeTest {
 [source, java]
 ----
 UnsafeTest o1 = new UnsafeTest(); // constructor
-o1.getSomeInt(); // prints 1
+o1.getSomeInt(); // prints 20
 
 UnsafeTest o2 = UnsafeTest.class.newInstance(); // reflection
-o2.getSomeInt(); // prints 1
+o2.getSomeInt(); // prints 20
 
 UnsafeTest o3 = (UnsafeTest) unsafe.allocateInstance(UnsafeTest.class); // unsafe
 o3.getSomeInt(); // prints 0
@@ -201,7 +202,7 @@ o3.getSomeInt(); // prints 0
 
 === Tableaux XXL en mémoire Off Heap
 
-Ce use est utilisé par Neo4J et OrientDB, 2 bases de données NoSQL de type graphe, et MapDB, une solution hybride entre le framework de collections et le moteur de base de données.
+Ce use case est utilisé par Neo4J et OrientDB, 2 bases de données NoSQL de type graphe, et MapDB, une solution hybride entre le framework de collections et le moteur de base de données.
 
 Les tableaux en Java sont indexés par des `int`, et dès lors limités à `Integer.MAX_VALUE` éléments (2^31^). +
 En utilisant la méthode `allocateMemory` d'Unsafe, il est possible de créer de vastes structures de données, en dehors de la Heap (mémoire Off Heap), non soumises à ces limitations.

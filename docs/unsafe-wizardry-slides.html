@@ -24,9 +24,101 @@ Pour les désactiver : <code>-XX:-UseAES -XX:-UseAESIntrinsics</code>
 Les AES sont activées par défaut.</p></div></aside></section><section id="_with_great_power_comes_great_responsibility"><div class="imageblock" style=""><img src="images/with-great-power.jpg" alt="power and responsibility"></div></section><section id="_l_utilisation_d_strong_unsafe_strong_n_est_pas_sans_risque"><h2>L&#8217;utilisation d'<strong>Unsafe</strong> n&#8217;est pas sans risque</h2><div class="paragraph"><p>Ses méthodes très bas niveau ne respectent <strong>les barrières de sécurité classiques de Java</strong>.<br>
 Parmi les risques encourus, on trouve, entre autres :</p></div></section><section id="_violation_d_accs_mmoire"><h2>Violation d&#8217;accès mémoire</h2><div class="paragraph"><p>Avec Unsafe, on peut écrire en dehors des plages mémoires allouées&#8230;&#8203;</p></div></section><section id="_violation_de_la_suret_des_types"><h2>Violation de la sureté des types</h2><div class="paragraph"><p>Avec Unsafe, on peut stocker un int dans un type référence&#8230;&#8203;</p></div></section><section id="_violation_des_contrats_de_mthodes"><h2>Violation des contrats de méthodes</h2><div class="paragraph"><p>Avec Unsafe, on peut faire lancer une checked exception à une méthode qui ne la déclare ou ne la catch pas&#8230;&#8203;</p></div></section><section id="_tout_simplement_faire_crasher_la_jvm"><h2>Tout simplement faire crasher la JVM&#8230;&#8203;</h2><div class="paragraph"><p>Par exemple, en libérant la mémoire d&#8217;une plage d&#8217;adresses réservée&#8230;&#8203;</p></div>
 <aside class="notes"><div class="paragraph"><p>le fameux <code>unsafe.freeMemory(1);</code></p></div></aside></section></section>
-<section id="_plan_de_suppression_de_la_classe"><h2>Plan de suppression de la classe</h2></section>
-<section id="_instancier_une_classe_sans_passer_par_le_constructeur"><h2>Instancier une classe sans passer par le constructeur</h2></section>
-<section id="_ressources_rfrences"><h2>Ressources &amp; références</h2><div class="ulist"><ul><li><p>Slides : <a href="https://ardemius.github.io/unsafe-wizardry/unsafe-wizardry-slides.html" class="bare">https://ardemius.github.io/unsafe-wizardry/unsafe-wizardry-slides.html</a></p></li><li><p>Code des slides : <a href="https://github.com/Ardemius/unsafe-wizardry" class="bare">https://github.com/Ardemius/unsafe-wizardry</a></p></li><li><p>Toutes les <strong>références</strong> utilisées pour la création de ce quicky sont listées <a href="https://github.com/Ardemius/unsafe-wizardry/blob/master/unsafe-wizardry-notes.adoc#resources">ici</a>.</p></li></ul></div></section>
+<section><section id="_demandez_le_journal"><h2>Demandez le journal !</h2><div class="paragraph"><p>En juillet 2015, du fait du travail sur <strong>Jigsaw</strong> visant à rendre Java plus modulaire (voir la <a href="http://openjdk.java.net/jeps/260">JEP 260</a>), Oracle laisse entendre que l&#8217;API pourrait <strong>ne plus être directement accessible</strong> avec le JDK 9, <strong>puis définitivement supprimée</strong> avec le JDK 10.</p></div></section><section><div class="paragraph"><p>Le problème est que cette API, même si ce n&#8217;aurait normalement pas du être le cas, est <strong>depuis longtemps utilisée</strong> par de nombreux projets et outils, et qu&#8217;elle ne dispose <strong>pas encore de véritables solutions de remplacement</strong> pour toutes ses fonctionnalités.</p></div></section><section><div class="paragraph"><p>De plus, Oracle ne s&#8217;est pas montré très enclin à négocier sur le sujet&#8230;&#8203;</p></div></section><section id="_unsafe_must_die_in_a_fire"><div class="imageblock" style=""><img src="images/die-in-a-fire.png" alt="Unsafe must die in a fire"></div></section><section><div class="paragraph"><p>Résultat :<br>
+Une grosse levée de boucliers de sociétés dont <strong>Hazelcast</strong>, <strong>Azul Systems</strong>, <strong>OpenHFT</strong> pour ne citer qu&#8217;elles.</p></div>
+<aside class="notes"><div class="paragraph"><p>Les sociétés concernées sont avant tout celles travaillant autout de la latence basse, et du stockage de masse en mémoire.</p></div></aside></section></section>
+<section><section id="_comment_utiliser_unsafe"><h2>Comment utiliser Unsafe ?</h2><div class="paragraph"><p><code>Unsafe</code> ne peut être instanciée directement : la classe est <strong><code>final</code></strong>, et son <strong>constructeur privé</strong>.</p></div><div class="paragraph"><p>De plus, <code>Unsafe.getUnsafe()</code>, qui renvoie une instance d&#8217;Unsafe, est pour ainsi dire <strong>protégée</strong><br>
+Si vous l&#8217;appelez vous aurez probablement une <code>SecurityException</code>.</p></div><aside class="notes"><div class="paragraph"><p>Il faut que votre code soit chargé par le classloader primaire.<br>
+Cela peut être fait à l&#8217;aide de l&#8217;option <code>bootclasspath</code> de la JVM : <code>java -Xbootclasspath:/usr/jdk1.8.0/jre/lib/rt.jar:. com.draft.UnsafeTest</code></p></div></aside></section><section id="_utilisation_de_la_rflexion"><h2>Utilisation de la réflexion</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">Field f = Unsafe.class.getDeclaredField("theUnsafe");
+f.setAccessible(true);
+Unsafe unsafe = (Unsafe) f.get(null);</code></pre></div></div>
+<aside class="notes"><div class="paragraph"><p>L&#8217;objectif est de récupérer une instance d&#8217;Unsafe, permettant d&#8217;accéder à ses fonctionnalités.</p></div></aside></section><section id="_ou_encore"><h2>ou encore</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">Constructor&lt;Unsafe&gt; c = Unsafe.class.getDeclaredConstructor();
+c.setAccessible(true);
+Unsafe unsafe = c.newInstance();</code></pre></div></div></section></section>
+<section><section id="_qui_fait_quoi_avec_code_unsafe_code"><h2>Qui fait quoi avec <code>Unsafe</code> ?</h2><div class="paragraph"><p>Unsafe regroupe au total <strong>120 méthodes publiques</strong> (JDK 1.8.0_40).</p></div><div class="paragraph"><p>La liste complètes des <strong>use cases</strong> associés est longue, voir :</p></div><div class="ulist"><ul><li><p><a href="http://www.inf.usi.ch/lanza/Downloads/Mast2015a.pdf">Use at Your Own Risk: The Java Unsafe API in the Wild</a></p></li><li><p><a href="https://docs.google.com/document/d/1GDm_cAxYInmoHMor-AkStzWvwE9pw6tnz_CebJQxuUE">l&#8217;état des lieux de la communauté</a></p></li></ul></div><div class="paragraph"><p>De notre côté, nous allons voir les suivants :</p></div></section><section id="_instancier_une_classe_sans_passer_par_le_constructeur"><h2>Instancier une classe sans passer par le constructeur</h2><div class="paragraph"><p>Ce use case est fortement utilisé par <strong>Spring Core</strong>, <strong>Objenesis</strong> et <strong>Mockito</strong>.</p></div></section><section><div class="paragraph"><p>A l&#8217;aide de la méthode <code>allocateInstance()</code>, on peut créer une instance d&#8217;une classe :</p></div>
+<div class="ulist"><ul><li><p><strong>sans invoquer son constructeur</strong></p></li><li><p><strong>ni ses initialisations de variables</strong></p></li></ul></div>
+<div class="paragraph"><p>Cela fonctionne également pour des classes dont le <strong>constructeur est privé</strong><br>
+(Ayons une petite pensée pour les <span class="red">Singletons</span>&#8230;&#8203;)</p></div></section><section><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">class UnsafeTest {
+    private int someInt = 42;
+
+    public UnsafeTest(){
+        this.someInt = 20;
+    }
+
+    public int getSomeInt(){
+        return this.someInt;
+    }
+}</code></pre></div></div></section><section><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">// constructor
+UnsafeTest o1 = new UnsafeTest();
+o1.getSomeInt(); // prints 20
+
+// reflection
+UnsafeTest o2 = UnsafeTest.class.newInstance();
+o2.getSomeInt(); // prints 20
+
+// unsafe
+UnsafeTest o3 = (UnsafeTest) unsafe.allocateInstance(UnsafeTest.class);
+o3.getSomeInt(); // prints 0</code></pre></div></div></section><section id="_tableaux_xxl_en_mmoire_off_heap"><h2>Tableaux XXL en mémoire Off Heap</h2><div class="paragraph"><p>Ce use case est utilisé par <strong>Neo4J</strong> et <strong>OrientDB</strong>, 2 bases de données NoSQL de type graphe, et MapDB, une solution hybride entre le framework de collections et le moteur de base de données.</p></div></section><section><div class="paragraph"><p>Les tableaux en Java sont <strong>indexés par des <code>int</code></strong>, et dès lors limités à <code>Integer.MAX_VALUE</code> éléments (2<sup>31</sup>).</p></div>
+<div class="paragraph"><p>En utilisant la méthode <code>allocateMemory</code> d&#8217;Unsafe, il est possible de créer de vastes structures de données, <strong>en dehors de la Heap</strong> (mémoire Off Heap), non soumises à ces limitations.</p></div></section><section><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">class SuperArray {
+    private final static int BYTE = 1;
+
+    private long size;
+    private long address;
+
+    public SuperArray(long size) {
+        this.size = size;
+        address = getUnsafe().allocateMemory(size * BYTE);
+    }
+
+    public void set(long idx, byte value) {
+        getUnsafe().putByte(address + i * BYTE, value);
+    }
+
+    public int get(long idx) {
+        return getUnsafe().getByte(address + idx * BYTE);
+    }
+
+    public long size() {
+        return size;
+    }
+}</code></pre></div></div></section><section><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">long SUPER_SIZE = (long)Integer.MAX_VALUE * 2;
+SuperArray array = new SuperArray(SUPER_SIZE);
+
+System.out.println("Array size:" + array.size()); // 4294967294
+
+for (int i = 0; i &lt; 100; i++) {
+    array.set((long) Integer.MAX_VALUE + i, (byte) 3);
+    sum += array.get((long) Integer.MAX_VALUE + i);
+}
+
+System.out.println("Sum of 100 elements:" + sum);  // 300</code></pre></div></div></section><section id="__span_class_red_attention_span"><h2><span class="red">Attention !</span></h2><div class="ulist"><ul><li><p>La mémoire <strong>Off Heap</strong> n&#8217;est <strong>PAS</strong> gérée par le Garbage Collector !</p></li><li><p>Vous devez la <strong>nettoyer</strong> à l&#8217;aide de <code>freeMemory()</code><br>
+Des <strong>crashs de la JVM</strong> sont possibles en cas de manque de ressources.</p></li></ul></div></section><section id="_corruption_de_la_mmoire"><h2>Corruption de la mémoire</h2><div class="paragraph"><p>Ce use case traite de problématiques de <strong>sécurité</strong>.</p></div></section><section><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">class Guard {
+    private int ACCESS_ALLOWED = 1;
+
+    public boolean giveAccess() {
+        return 42 == ACCESS_ALLOWED;
+    }
+
+    [...]
+}</code></pre></div></div></section><section><div class="paragraph"><p>Dans un code client <strong>très sécurisé</strong>, <code>giveAccess()</code> est appelée régulièrement pour vérifier les droits d&#8217;accès, et renvoie systématiquement <code>false</code> pour la quasi-totalité des utilisateurs.
+<br>
+<br>
+Néanmoins, avec Unsafe&#8230;&#8203;</p></div>
+<aside class="notes"><div class="paragraph"><p>Sauf les utilisateurs autorisés pouvant modifier la valeur de <code>ACCESS_ALLOWED</code>.</p></div></aside></section><section><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">Guard guard = new Guard();
+guard.giveAccess(); // false, no access
+
+// bypass
+Unsafe unsafe = getUnsafe();
+Field f = guard.getClass().getDeclaredField("ACCESS_ALLOWED");
+unsafe.putInt(guard, unsafe.objectFieldOffset(f), 42); // memory corruption
+
+guard.giveAccess(); // true, access granted</code></pre></div></div></section><section><div class="paragraph"><p>A l&#8217;aide des méthodes <code>putInt</code> et <code>objectFieldOffset()</code>, il est possible d'<strong>écraser la valeur</strong> de <code>ACCESS_ALLOWED</code> à son <strong>emplacement en mémoire</strong>.</p></div></section></section>
+<section id="_l_avenir_d_unsafe"><h2>L&#8217;avenir d&#8217;Unsafe</h2><div class="ulist"><ul><li><p>Un <strong>flag de la ligne de commande</strong> permettrait de rendre accessible certaines APIs propriétaires, dont Unsafe.</p></li><li><p>Les <strong>Variables Handles</strong> (<a href="http://openjdk.java.net/jeps/193">JEP 193</a>, au scope de Java 9) sont censées remplacer les fonctionnalités d&#8217;Unsafe touchant à l&#8217;accès à la mémoire .</p></li></ul></div></section>
+<section id="_ressources_rfrences"><h2>Ressources &amp; références</h2><div class="ulist"><ul><li><p><strong>Slides</strong> : <a href="https://ardemius.github.io/unsafe-wizardry/unsafe-wizardry-slides.html">ardemius.github.io/unsafe-wizardry/unsafe-wizardry-slides.html</a></p></li><li><p><strong>Code des slides</strong> : <a href="https://github.com/Ardemius/unsafe-wizardry">github.com/Ardemius/unsafe-wizardry</a><br>
+Ces slides ont été générés avec <a href="http://asciidoctor.org/">Asciidoctor</a> et le backend <a href="https://github.com/asciidoctor/asciidoctor-reveal.js">reveal.js</a>
+<br><br></p></li><li><p>Toutes les <strong>références</strong> utilisées pour la création de ce quicky sont listées <a href="https://github.com/Ardemius/unsafe-wizardry/blob/master/unsafe-wizardry-notes.adoc#resources">ici</a>.</p></li></ul></div></section>
+<section id="_des_questions"><h2>Des questions ?</h2></section>
+<section id="_merci"><h2>Merci !</h2></section>
 <section id="_dernier_slide_du_template_du_parisjug"><div class="imageblock" style=""><img src="images/last-slide_templateJug2016.jpg" alt="last slide"></div></section></div></div><script src="reveal.js/lib/js/head.min.js"></script><script src="reveal.js/js/reveal.js"></script><script>// See https://github.com/hakimel/reveal.js#configuration for a full list of configuration options
 Reveal.initialize({
   // Display controls in the bottom right corner

@@ -6,6 +6,7 @@
 // Despite the warning of the documentation, https://github.com/asciidoctor/asciidoctor-reveal.js, highlight.js syntax highlighting WORKS, BUT, you need to explicitly set the highlighter using the below attribute
 // see http://discuss.asciidoctor.org/Highlighting-source-code-for-reveal-js-backend-td2750.html
 :source-highlighter: highlightjs
+:lb: pass:[<br> +]
 // reveal.js attributes
 :customcss: styles/myCustomCSS.css
 :revealjs_theme: white
@@ -148,16 +149,254 @@ le fameux `unsafe.freeMemory(1);`
 
 == Demandez le journal !
 
-En juillet 2015
+En juillet 2015, du fait du travail sur *Jigsaw* visant à rendre Java plus modulaire (voir la http://openjdk.java.net/jeps/260[JEP 260]), Oracle laisse entendre que l'API pourrait *ne plus être directement accessible* avec le JDK 9, *puis définitivement supprimée* avec le JDK 10.
 
-== Instancier une classe sans passer par le constructeur
+=== !
+
+Le problème est que cette API, même si ce n'aurait normalement pas du être le cas, est *depuis longtemps utilisée* par de nombreux projets et outils, et qu'elle ne dispose *pas encore de véritables solutions de remplacement* pour toutes ses fonctionnalités.
+
+=== !
+
+De plus, Oracle ne s'est pas montré très enclin à négocier sur le sujet...
+
+[%notitle]
+=== Unsafe must die in a fire!
+
+image::die-in-a-fire.png[Unsafe must die in a fire, size=contain]
+
+=== !
+
+Résultat : +
+Une grosse levée de boucliers de sociétés dont *Hazelcast*, *Azul Systems*, *OpenHFT* pour ne citer qu'elles.
+
+[NOTE.speaker]
+--
+Les sociétés concernées sont avant tout celles travaillant autout de la latence basse, et du stockage de masse en mémoire.
+--
+
+== Comment utiliser Unsafe ?
+
+`Unsafe` ne peut être instanciée directement : la classe est *`final`*, et son *constructeur privé*.
+
+De plus, `Unsafe.getUnsafe()`, qui renvoie une instance d'Unsafe, est pour ainsi dire *protégée* +
+Si vous l'appelez vous aurez probablement une `SecurityException`.
+
+[NOTE.speaker]
+--
+Il faut que votre code soit chargé par le classloader primaire. +
+Cela peut être fait à l'aide de l'option `bootclasspath` de la JVM : `java -Xbootclasspath:/usr/jdk1.8.0/jre/lib/rt.jar:. com.draft.UnsafeTest`
+--
+
+=== Utilisation de la réflexion
+
+[source, java]
+----
+Field f = Unsafe.class.getDeclaredField("theUnsafe");
+f.setAccessible(true);
+Unsafe unsafe = (Unsafe) f.get(null);
+----
+
+[NOTE.speaker]
+--
+L'objectif est de récupérer une instance d'Unsafe, permettant d'accéder à ses fonctionnalités.
+--
+
+=== ou encore
+
+[source, java]
+----
+Constructor<Unsafe> c = Unsafe.class.getDeclaredConstructor();
+c.setAccessible(true);
+Unsafe unsafe = c.newInstance();
+----
+
+== Qui fait quoi avec `Unsafe` ?
+
+Unsafe regroupe au total *120 méthodes publiques* (JDK 1.8.0_40).
+
+La liste complètes des *use cases* associés est longue, voir :
+
+* http://www.inf.usi.ch/lanza/Downloads/Mast2015a.pdf[Use at Your Own Risk: The Java Unsafe API in the Wild]
+* https://docs.google.com/document/d/1GDm_cAxYInmoHMor-AkStzWvwE9pw6tnz_CebJQxuUE[l'état des lieux de la communauté]
+
+De notre côté, nous allons voir les suivants :
+
+=== Instancier une classe sans passer par le constructeur
+
+Ce use case est fortement utilisé par *Spring Core*, *Objenesis* et *Mockito*.
+
+=== !
+
+A l'aide de la méthode `allocateInstance()`, on peut créer une instance d'une classe :
+
+* *sans invoquer son constructeur*
+* *ni ses initialisations de variables*
+
+Cela fonctionne également pour des classes dont le *constructeur est privé* +
+(Ayons une petite pensée pour les [red]#Singletons#...)
+
+=== ! 
+
+[source, java]
+----
+class UnsafeTest {
+    private int someInt = 42;
+     
+    public UnsafeTest(){
+        this.someInt = 20;
+    }
+
+    public int getSomeInt(){
+        return this.someInt;
+    }
+}
+----
+
+=== ! 
+
+[source, java]
+----
+// constructor
+UnsafeTest o1 = new UnsafeTest(); 
+o1.getSomeInt(); // prints 20
+
+// reflection
+UnsafeTest o2 = UnsafeTest.class.newInstance(); 
+o2.getSomeInt(); // prints 20
+
+// unsafe
+UnsafeTest o3 = (UnsafeTest) unsafe.allocateInstance(UnsafeTest.class); 
+o3.getSomeInt(); // prints 0
+----
+
+=== Tableaux XXL en mémoire Off Heap
+
+Ce use case est utilisé par *Neo4J* et *OrientDB*, 2 bases de données NoSQL de type graphe, et MapDB, une solution hybride entre le framework de collections et le moteur de base de données.
+
+=== !
+
+Les tableaux en Java sont *indexés par des `int`*, et dès lors limités à `Integer.MAX_VALUE` éléments (2^31^).
+
+En utilisant la méthode `allocateMemory` d'Unsafe, il est possible de créer de vastes structures de données, *en dehors de la Heap* (mémoire Off Heap), non soumises à ces limitations.
+
+=== ! 
+
+[source, java]
+----
+class SuperArray {
+    private final static int BYTE = 1;
+
+    private long size;
+    private long address;
+
+    public SuperArray(long size) {
+        this.size = size;
+        address = getUnsafe().allocateMemory(size * BYTE);
+    }
+
+    public void set(long idx, byte value) {
+        getUnsafe().putByte(address + i * BYTE, value);
+    }
+
+    public int get(long idx) {
+        return getUnsafe().getByte(address + idx * BYTE);
+    }
+
+    public long size() {
+        return size;
+    }
+}
+----
+
+=== ! 
+
+[source, java]
+----
+long SUPER_SIZE = (long)Integer.MAX_VALUE * 2;
+SuperArray array = new SuperArray(SUPER_SIZE);
+
+System.out.println("Array size:" + array.size()); // 4294967294
+
+for (int i = 0; i < 100; i++) {
+    array.set((long) Integer.MAX_VALUE + i, (byte) 3);
+    sum += array.get((long) Integer.MAX_VALUE + i);
+}
+
+System.out.println("Sum of 100 elements:" + sum);  // 300
+----
+
+=== [red]#Attention !#
+
+* La mémoire *Off Heap* n'est *PAS* gérée par le Garbage Collector !
+* Vous devez la *nettoyer* à l'aide de `freeMemory()` +
+Des *crashs de la JVM* sont possibles en cas de manque de ressources.
+
+=== Corruption de la mémoire
+
+Ce use case traite de problématiques de *sécurité*.
+
+=== ! 
+
+[source, java]
+----
+class Guard {
+    private int ACCESS_ALLOWED = 1;
+
+    public boolean giveAccess() {
+        return 42 == ACCESS_ALLOWED;
+    }
+
+    [...]
+}
+----
+
+=== ! 
+
+Dans un code client *très sécurisé*, `giveAccess()` est appelée régulièrement pour vérifier les droits d'accès, et renvoie systématiquement `false` pour la quasi-totalité des utilisateurs.
+ +
+ +
+Néanmoins, avec Unsafe... 
+
+[NOTE.speaker]
+--
+Sauf les utilisateurs autorisés pouvant modifier la valeur de `ACCESS_ALLOWED`.
+--
+
+=== ! 
+
+[source, java]
+----
+Guard guard = new Guard();
+guard.giveAccess(); // false, no access
+
+// bypass
+Unsafe unsafe = getUnsafe();
+Field f = guard.getClass().getDeclaredField("ACCESS_ALLOWED");
+unsafe.putInt(guard, unsafe.objectFieldOffset(f), 42); // memory corruption
+
+guard.giveAccess(); // true, access granted
+----
+
+=== ! 
+
+A l'aide des méthodes `putInt` et `objectFieldOffset()`, il est possible d'*écraser la valeur* de `ACCESS_ALLOWED` à son *emplacement en mémoire*.
+
+== L'avenir d'Unsafe
+
+* Un *flag de la ligne de commande* permettrait de rendre accessible certaines APIs propriétaires, dont Unsafe.
+* Les *Variables Handles* (http://openjdk.java.net/jeps/193[JEP 193], au scope de Java 9) sont censées remplacer les fonctionnalités d'Unsafe touchant à l'accès à la mémoire .
 
 == Ressources & références
 
-* Slides : https://ardemius.github.io/unsafe-wizardry/unsafe-wizardry-slides.html
-* Code des slides : https://github.com/Ardemius/unsafe-wizardry
-
+* *Slides* : https://ardemius.github.io/unsafe-wizardry/unsafe-wizardry-slides.html[ardemius.github.io/unsafe-wizardry/unsafe-wizardry-slides.html]
+* *Code des slides* : https://github.com/Ardemius/unsafe-wizardry[github.com/Ardemius/unsafe-wizardry] +
+Ces slides ont été générés avec http://asciidoctor.org/[Asciidoctor] et le backend https://github.com/asciidoctor/asciidoctor-reveal.js[reveal.js]
+{lb}
 * Toutes les *références* utilisées pour la création de ce quicky sont listées https://github.com/Ardemius/unsafe-wizardry/blob/master/unsafe-wizardry-notes.adoc#resources[ici].
+
+== Des questions ?
+
+== Merci !
 
 [%notitle]
 == dernier slide du template du ParisJUG
