@@ -7,6 +7,9 @@
 :source-highlighter: highlightjs
 // reveal.js attributes
 :customcss: styles/myCustomCSS.css
+:revealjs_theme: white
 
-== Mémoire Off Heap
+== Instancier une classe sans passer par le constructeur
+
+
 

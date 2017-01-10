@@ -57,6 +57,7 @@ Et WireMock également :
 En début de présentation, parmi les 1ers slides :
 * donner ses coordonnées (GitHub / Twitter)
 * logo StarTECH
+* citer ses ressources
 
 == Oral de la présentation
 
@@ -134,11 +135,11 @@ D'où la levée de boucliers de nombreuses sociétés dont Hazelcast, Azul Syste
 == Comment utiliser Unsafe ?
 
 On ne peut pas instancier Unsafe directement, la classe est `final` et son constructeur privé. +
-De plus, la méthode `Unsafe.getUnsafe()` est pour ainsi dire protégée, si vous l'appelez vous aurez probablement une `SecurityException`.
+De plus, la méthode `Unsafe.getUnsafe()`, qui renvoie une instance d'Unsafe, est pour ainsi dire protégée (il faut que votre code soit chargé par le classloader primaire), si vous l'appelez vous aurez probablement une `SecurityException`.
 
 Donc, le plus simple pour l'instancier est d'utiliser la réflexion :
 
-[code, java]
+[source, java]
 ----
 Field f = Unsafe.class.getDeclaredField("theUnsafe");
 f.setAccessible(true);
@@ -147,7 +148,7 @@ Unsafe unsafe = (Unsafe) f.get(null);
 
 Ou
 
-[code, java]
+[source, java]
 ----
 Constructor<Unsafe> c = Unsafe.class.getDeclaredConstructor();
 c.setAccessible(true);
@@ -158,15 +159,155 @@ Dans les 2 cas, vous récupérez une instance d'Unsafe, vous permettant d'accéd
 
 == Unsafe pour faire quoi, et par qui ?
 
-* Hazelcast : High Density Memory Store
+Unsafe regroupe au total 120 méthodes publiques (JDK 1.8.0_40). +
+Parmi les nombreux use cases dans lesquels elles sont utilisées, j'ai choisi de vous présenter les suivants, qui sont parmi les plus connus et surprenants :
+
+* Instancier une classe sans passer par le constructeur
+* Créer des tableaux extra larges en utilisant la mémoire Off Heap
+
+=== Instancier une classe sans passer par le constructeur
+
+Ce use case est fortement utilisé par Spring Core, Objenesis et Mockito.
+
+En utilisant la méthode `allocateInstance()`, on peut créer une instance d'une classe sans invoquer son constructeur, ni ses initialisations de variables. +
+Cela fonctionne également pour des méthodes dont le constructeur est privé (ayons une petite pensée pour les Singletons...)
+
+[source, java]
+----
+class UnsafeTest {
+    private int someInt = 42;
+     
+    public UnsafeTest(){
+        this.someInt = 20;
+    }
+
+    public int getSomeInt(){
+        return this.someInt;
+    }
+}
+----
+
+[source, java]
+----
+UnsafeTest o1 = new UnsafeTest(); // constructor
+o1.getSomeInt(); // prints 1
+
+UnsafeTest o2 = UnsafeTest.class.newInstance(); // reflection
+o2.getSomeInt(); // prints 1
+
+UnsafeTest o3 = (UnsafeTest) unsafe.allocateInstance(UnsafeTest.class); // unsafe
+o3.getSomeInt(); // prints 0
+----
+
+=== Tableaux XXL en mémoire Off Heap
+
+Ce use est utilisé par Neo4J et OrientDB, 2 bases de données NoSQL de type graphe, et MapDB, une solution hybride entre le framework de collections et le moteur de base de données.
+
+Les tableaux en Java sont indexés par des `int`, et dès lors limités à `Integer.MAX_VALUE` éléments (2^31^). +
+En utilisant la méthode `allocateMemory` d'Unsafe, il est possible de créer de vastes structures de données, en dehors de la Heap (mémoire Off Heap), non soumises à ces limitations.
+
+[source, java]
+----
+class SuperArray {
+    private final static int BYTE = 1;
+
+    private long size;
+    private long address;
+
+    public SuperArray(long size) {
+        this.size = size;
+        address = getUnsafe().allocateMemory(size * BYTE);
+    }
+
+    public void set(long idx, byte value) {
+        getUnsafe().putByte(address + i * BYTE, value);
+    }
+
+    public int get(long idx) {
+        return getUnsafe().getByte(address + idx * BYTE);
+    }
+
+    public long size() {
+        return size;
+    }
+}
+----
+
+[source, java]
+----
+long SUPER_SIZE = (long)Integer.MAX_VALUE * 2;
+SuperArray array = new SuperArray(SUPER_SIZE);
+System.out.println("Array size:" + array.size()); // 4294967294
+for (int i = 0; i < 100; i++) {
+    array.set((long)Integer.MAX_VALUE + i, (byte)3);
+    sum += array.get((long)Integer.MAX_VALUE + i);
+}
+System.out.println("Sum of 100 elements:" + sum);  // 300
+----
+
+Attention ! la mémoire Off Heap n'est *PAS* gérée par le Garbage Collector, et est sous votre entière responsabilité. +
+Vous devez la nettoyer à l'aide de `freeMemory()`, des crashs de la JVM étant possibles si vous dépassez ses limites de mémoire. 
+
+=== Corruption de la mémoire
+
+L'idée derrière ce use case est un classique en matière de sécurité.
+
+Considérons la classe suivante :
+
+[source, java]
+----
+class Guard {
+    private int ACCESS_ALLOWED = 1;
+
+    public boolean giveAccess() {
+        return 42 == ACCESS_ALLOWED;
+    }
+
+    [...]
+}
+----
+
+Dans un code client très sécurisé, la méthode `giveAccess()` est appelée régulièrement pour vérifier les droits d'accès, et renvoie systématiquement `false` pour la quasi-totalité des utilisateurs (sauf les utilisateurs autorisés pouvant modifier la valeur de `ACCESS_ALLOWED`. 
+
+Néanmoins, Unsafe nous permet passer outre cette sécurité :
+
+[source, java]
+----
+Guard guard = new Guard();
+guard.giveAccess();   // false, no access
+
+// bypass
+Unsafe unsafe = getUnsafe();
+Field f = guard.getClass().getDeclaredField("ACCESS_ALLOWED");
+unsafe.putInt(guard, unsafe.objectFieldOffset(f), 42); // memory corruption
+
+guard.giveAccess(); // true, access granted
+----
+
+A l'aide des méthodes `putInt` et `objectFieldOffset()`, il est possible d'écraser la valeur de `ACCESS_ALLOWED` à son emplacement en mémoire par une autre.
 
 == L'avenir d'Unsafe
 
 * One of the current suggestions is that proprietary APIs, Unsafe among them, are made accessible by passing a particular flag in the command line.
 * Variables Handles (JEP 193) : cette JEP n'est pas une solution de remplacement de toute l'API, elle se concentre sur la partie d'accès à la mémoire.
 
-
 == Annexes
+
+=== Uses of Unsafe
+
+* Mocking Classes
+* Low, very predictable latencies (low GC overhead)
+* Fast de-/serialization
+* Thread safe 64-bit sized native memory access (for example offheap)
+* Atomic memory operations
+* Efficient object / memory layouts
+* Fast field / memory access
+* Custom memory fences
+* Fast interaction with native code 
+* Multi-operating system replacement for JNI.
+* “Type hijacking” of classes for type-safe APIs without calling a constructor.
+* Access to array items with volatile semantic
+* Uniform representation of memory chunks in byte arrays and direct buffers
 
 === Java Intrinsics
 
@@ -227,10 +368,11 @@ Etude complète, présente également les risques liés à l'utilisation d'Unsaf
 A fait l'objet d'un talk en 2015 : [https://www.youtube.com/watch?v=_mIBxVbAT_Y|Use at Your Own Risk: The Java Unsafe API in the Wild]
 
 * Fonctionnalités d'Unsafe :
+** http://mishadoff.com/blog/java-magic-part-4-sun-dot-misc-dot-unsafe/ +
+Le site de mishadoff, une super ressource contenant de nombreux exemples d'utilisation d'Unsafe.
 ** http://mydailyjava.blogspot.fr/2013/12/sunmiscunsafe.html
 ** http://howtodoinjava.com/core-java/related-concepts/usage-of-class-sun-misc-unsafe/
 ** https://dzone.com/articles/understanding-sunmiscunsafe
-** http://mishadoff.com/blog/java-magic-part-4-sun-dot-misc-dot-unsafe/
 
 * Les alternatives à venir pour Unsafe :
 ** Variables Handles : http://openjdk.java.net/jeps/193 +
@@ -262,5 +404,6 @@ Voir cet post de SO pour confirmation : http://stackoverflow.com/questions/15085
 
 What librairies use Unsafe?
 
-* Objenesis[http://objenesis.org/|site][https://github.com/easymock/objenesis|code]: to instantiate objects by various ways
+* Objenesis[http://objenesis.org/|site][https://github.com/easymock/objenesis|code]: to instantiate objects by various ways +
+Librairie utilisée en interne par Spring.
 
