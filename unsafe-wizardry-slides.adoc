@@ -80,7 +80,7 @@ proprietary API and may be removed in a future release
 [%notitle]
 === Mais alors, pourquoi s'en servir ?
 
-image::why.png[background, size=contain]
+image::why.png[why, size=contain]
 
 === Ici et nulle part ailleurs ! 
 
@@ -304,7 +304,7 @@ class SuperArray {
     }
 
     public void set(long idx, byte value) {
-        getUnsafe().putByte(address + i * BYTE, value);
+        getUnsafe().putByte(address + idx * BYTE, value);
     }
 
     public int get(long idx) {
