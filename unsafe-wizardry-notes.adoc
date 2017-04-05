@@ -55,6 +55,7 @@ Et WireMock également :
 == A ne pas oublier
 
 En début de présentation, parmi les 1ers slides :
+
 * donner ses coordonnées (GitHub / Twitter)
 * logo StarTECH
 * citer ses ressources
