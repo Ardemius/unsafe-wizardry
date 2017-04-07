@@ -11,7 +11,7 @@
 :customcss: styles/myCustomCSS.css
 :revealjs_theme: white
 // customize title slide
-:title-slide-background-image: first-slide_templateJug2016.jpg
+:title-slide-background-image: devoxxfrance2017-intro.png
 :title-slide-background-size: contain
 
 == Sorcellerie en Java
@@ -407,7 +407,3 @@ Ces slides ont été générés avec http://asciidoctor.org/[Asciidoctor] et le 
 
 == Merci !
 
-[%notitle]
-== dernier slide du template du ParisJUG
-
-image::last-slide_templateJug2016.jpg[last slide, size=contain]
