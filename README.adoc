@@ -1,4 +1,4 @@
-# Sorcellerie en Java : outrepasser les interdits avec `sun.misc.Unsafe`
+= Sorcellerie en Java : outrepasser les interdits avec `sun.misc.Unsafe`
 
 Quicky visant à présenter cette classe qui a fait couler beaucoup d'encre dernièrement (menace de suppression du jdk, levée de bouclier d'Hazelcast et d'Azul Systems, etc.) au travers :
 
